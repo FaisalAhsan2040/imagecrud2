@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Student;
+use Illuminate\Http\Request;
+use Redirect;
 
 class StudentController extends Controller
 {
@@ -12,50 +13,65 @@ class StudentController extends Controller
         return view('product.create');
     }
 
-    public function Store(Request $request)
+    public  function Store(Request $request)
     {
+
         $input = $request->all();
-  
+       
         if ($request->file('image')) {
             $image = $request->file('image');
-            $destinationPath = 'image/';
+            $destinationPath = public_path('images/');
             $profileImage = date('YmdHis') . "." . $image->getClientOriginalExtension();
             $image->move($destinationPath, $profileImage);
-            $input['image'] = "$profileImage";
+            $input['image'] = $profileImage;
         }
-    
-          Student::create($input);
-          return redirect()->route('_create')
-          ->with('success','student created successfully.');
-    }
-    public function Index()
-    {
-        $students = Student::get();
-        return view('product.index',compact('students'));
-    }
-    public function Edit($id)
-    {
 
-        $student = Student::where('id',$id)->first();
+        $student =  Student::create($input);
+       
+       return to_route('index')->with(['success' => 'Student register successfully']);
 
+    }
+    public function index()
+    {
+        $students =  Student::get();
+        return view("product.index" , compact('students'));
+    }
+    public function edit($id)
+    {
+        $student = Student::whereId($id)->first();
         return view('product.edit',compact('student','id'));
     }
-
-    public function Update(Request $request)
+    public function update(Request $request)
     {
-        $name =  $request->name;
-        $roll_no =  $request->roll_no;
-        $image = $request->file('image');
-        $phone =  $request->phone;
-        $imagename = time().'.'.$image->extension();
-        $image->move(public_path('imges'),$imagename);
-        
+                           
         $student = Student::find($request->id);
-        $student->name = $name;
-        $student->roll_no = $roll_no;
-        $student->phone = $phone;
-        $student->image = $imagename;
+        $studentImage = '';
+        if($request->file('image'))
+            $image = $request->file('image');
+            $imagename = time().'.'.$image->extension();              
+            $image->move(public_path('images/'),$imagename);
+            $studentImage =$imagename;
+        }
+        else 
+        {
+            $studentImage = $student->image;
+        }
+
+        $student->name = $request->name;
+        $student->roll_no = $request->roll_no;
+        $student->phone = $request->phone;
+        $student->image = $studentImage;
         $student->save();
-        return back()->with('student_updated','student updATED SUCCESS FULLLY');
+        return to_route('index')->with(['success' => 'Student updated successfully']);
+         
+    }
+
+    public function delete(Request $request)
+    {
+        $student = Student::whereid($request->id)->first();
+        unlink(public_path('images/'.$student->image));
+        $student->delete();
+        return back()->with('success','Student records deleted Successfully');
     }
 }
+
